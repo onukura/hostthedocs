@@ -1,17 +1,18 @@
-FROM python:3-alpine
-RUN pip install pipenv
+FROM python:3.8
 
-ADD ./Pipfile ./Pipfile
-ADD ./Pipfile.lock ./Pipfile.lock
+RUN pip install -U pip poetry
 
-RUN pipenv install --deploy --system
+WORKDIR /usr/app
 
-ADD ./hostthedocs/ ./hostthedocs/
-ADD ./runserver.py ./runserver.py
+COPY ./pyproject.toml /usr/app/pyproject.toml
 
-ENV HTD_HOST "0.0.0.0"
-ENV HTD_PORT 5000
+RUN poetry install
+
+COPY ./hostthedocs/ /usr/app/hostthedocs/
+ADD ./runserver.py /usr/app/runserver.py
+
+ENV HTD_HOST="0.0.0.0" HTD_PORT=5000
 
 EXPOSE 5000
 
-CMD [ "python", "runserver.py" ]
+CMD ["poetry", "run", "python", "runserver.py"]

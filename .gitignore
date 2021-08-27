@@ -43,3 +43,5 @@ nosetests.xml
 hostthedocs/static/docfiles/*
 foo.html
 index.html
+
+.venv
