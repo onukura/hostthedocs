@@ -1,7 +1,4 @@
-"""
-Provides utility methods.
-"""
-
+# -*- coding: utf-8 -*-
 import os
 import logging
 import zipfile
@@ -9,6 +6,7 @@ import tarfile
 
 
 logger = logging.getLogger()
+
 
 def file_from_request(request):
     """
@@ -21,13 +19,14 @@ def file_from_request(request):
     uploaded_files = list(request.files.values())
     if len(uploaded_files) > 1:
         logger.warning(
-            'Only one file can be uploaded for each request. '
-            'Only the first file will be used.'
+            "Only one file can be uploaded for each request. "
+            "Only the first file will be used."
         )
     elif len(uploaded_files) == 0:
-        raise ValueError('Request does not contain uploaded file')
+        raise ValueError("Request does not contain uploaded file")
 
     return uploaded_files[0]
+
 
 class FileExpander(object):
     """
@@ -41,8 +40,8 @@ class FileExpander(object):
     - tar
     """
 
-    ZIP_EXTENSIONS = ('.zip', )
-    TAR_EXTENSIONS = ('.tar', '.tgz', '.tar.gz', '.tar.bz2')
+    ZIP_EXTENSIONS = (".zip",)
+    TAR_EXTENSIONS = (".tar", ".tgz", ".tar.gz", ".tar.bz2")
 
     def __init__(self, uploaded_file):
         self._file = uploaded_file
@@ -58,20 +57,20 @@ class FileExpander(object):
         :raises ValueError: If fails to detect the compression method.
         """
         if any(filename.endswith(ext) for ext in cls.ZIP_EXTENSIONS):
-            return 'zip'
+            return "zip"
         if any(filename.endswith(ext) for ext in cls.TAR_EXTENSIONS):
-            return 'tar'
+            return "tar"
 
-        raise ValueError('Unknown compression method for %s' % filename)
+        raise ValueError("Unknown compression method for %s" % filename)
 
     def __enter__(self):
         method = self.detect_compression_method(self._file.filename)
-        if method == 'zip':
+        if method == "zip":
             self._handle = zipfile.ZipFile(self._file)
-        elif method == 'tar':
-            self._handle = tarfile.open(fileobj=self._file, mode='r:*')
+        elif method == "tar":
+            self._handle = tarfile.open(fileobj=self._file, mode="r:*")
         else:
-            raise ValueError('Unsupported method %s' % method)
+            raise ValueError("Unsupported method %s" % method)
 
         return self._handle
 
