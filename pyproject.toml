@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "hostthedocs"
-version = "0.2.0"
+version = "3.0.0"
 description = "Makes documentation hosting easy."
-authors = ["Rob Galanakis <rob.galanakis@gmail.com>"]
+authors = ["Rob Galanakis <rob.galanakis@gmail.com>", "onukura <26293997+onukura@users.noreply.github.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.8"

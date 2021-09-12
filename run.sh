@@ -1,1 +1,0 @@
-poetry run gunicorn -w 4 -k uvicorn.workers.UvicornWorker run:app --bind localhost:5000

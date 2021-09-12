@@ -9,9 +9,8 @@ from codecs import open
 from typing import List, Optional
 
 import natsort
+from fastapi import UploadFile
 from pydantic import BaseModel
-
-from hostthedocs.util import FileExpander
 
 DEFAULT_PROJECT_DESCRIPTION = "No project description"
 
@@ -27,16 +26,16 @@ class Project(BaseModel):
     description: str
 
 
-def sort_by_version(x):
+def sort_by_version(x: Version):
     # See http://natsort.readthedocs.io/en/stable/examples.html
-    return x["version"].replace(".", "~") + "z"
+    return x.version.replace(".", "~") + "z"
 
 
 def _is_valid_doc_version(folder: pathlib.Path):
     """
     Test if a version folder contains valid documentation.
 
-    A vaersion folder contains documentation if:
+    A version folder contains documentation if:
     - is a directory
     - contains an `index.html` file
     """
@@ -85,7 +84,7 @@ def _get_proj_dict(
 
 
 def paths_sorted(paths: List[pathlib.Path]) -> List[pathlib.Path]:
-    return sorted(paths, key=lambda x: int(x.name))
+    return sorted(paths, key=lambda x: x.name)
 
 
 def parse_docfiles(
@@ -143,63 +142,60 @@ def find_root_dir(compressed_file, file_ext=".html"):
     return os.path.dirname(root_index_file)
 
 
-def unpack_project(uploaded_file, proj_metadata, docfiles_dir):
-    projdir = os.path.join(docfiles_dir, proj_metadata["name"])
-    verdir = os.path.join(projdir, proj_metadata["version"])
+def unpack_project(
+    uploaded_file: UploadFile,
+    name: str,
+    version: str,
+    description: str,
+    docfiles_dir: pathlib.Path,
+) -> None:
+    projdir = docfiles_dir / name
+    verdir = projdir / version
 
     if not os.path.isdir(verdir):
         os.makedirs(verdir)
 
     # Overwrite project description only if a (non empty) new one has been
     # provided
-    descr = proj_metadata.get("description", "")
+    descr = description
     if len(descr) > 0:
-        descrpath = os.path.join(projdir, "description.txt")
-        with open(descrpath, "w", encoding="utf-8") as f:
+        descrpath = projdir / "description.txt"
+        with open(descrpath.__str__(), "w", encoding="utf-8") as f:
             f.write(descr)
 
-    # This is insecure, we are only accepting things from trusted sources.
-    with FileExpander(uploaded_file) as compressed_file:
-        # Determine documentation root dir by finding top-level index file
-        root_dir = find_root_dir(compressed_file)
+    if uploaded_file.filename.endswith(".zip"):
+        filename = uploaded_file.filename
+        fileobj = uploaded_file.file
+        temp_dir = pathlib.Path(tempfile.mkdtemp())
 
-        # Extract full archive to temporary directory
-        temp_dir = tempfile.mkdtemp()
-        compressed_file.extractall(temp_dir)
+        with open(str(temp_dir / filename), "wb+") as f:
+            shutil.copyfileobj(fileobj, f)
+
+        extract_dir = temp_dir / "__extract"
+        extract_dir.mkdir()
+        with zipfile.ZipFile(str(temp_dir / filename)) as existing_zip:
+            existing_zip.extractall(extract_dir.__str__())
+
+        # Determine documentation root dir by finding top-level index file
+        root_index_file = sorted(
+            list(extract_dir.glob("**/index.html")),
+            key=lambda filename: len(filename.__str__().split(os.sep)),
+        )[0]
+        root_dir = pathlib.Path(root_index_file).parent.absolute()
 
         # Then, only move root directory to target dir
         shutil.rmtree(verdir)  # clear possibly existing target dir
-        shutil.move(
-            os.path.join(temp_dir, root_dir), verdir
-        )  # only move documentation root dir
+        shutil.move(root_dir, verdir)  # only move documentation root dir
 
         if os.path.isdir(temp_dir):  # cleanup temporary directory (if it still exists)
             shutil.rmtree(temp_dir)
 
-
-def valid_name(s):
-    """See readme for what's valid.
-
-    :type s: str
-    """
-    for c in s:
-        if not (c.isalnum() or c in " -_"):
-            return False
-    return True
+    return None
 
 
-def valid_version(s):
-    """See readme for what's valid.
-
-    :type s: str
-    """
-    for c in s:
-        if not (c.isalnum() or c == "."):
-            return False
-    return True
-
-
-def delete_files(name, version, docfiles_dir, entire_project=False):
+def delete_files(
+    name: str, version: str, docfiles_dir, entire_project: Optional[bool] = False
+):
     remove = os.path.join(docfiles_dir, name)
     if not entire_project:
         remove = os.path.join(remove, version)
