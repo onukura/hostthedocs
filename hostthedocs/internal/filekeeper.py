@@ -111,35 +111,18 @@ def parse_docfiles(
     return projects
 
 
-def find_root_dir(compressed_file, file_ext=".html"):
+def find_root_dir(root_dir: pathlib.Path, file_ext: str = ".html") -> pathlib.Path:
     """
     Determines the documentation root directory by searching the top-level index file.
     """
-
-    if isinstance(compressed_file, zipfile.ZipFile):
-        index_files = [
-            member.filename
-            for member in compressed_file.infolist()
-            if not member.is_dir()
-            and os.path.basename(member.filename) == f"index{file_ext}"
-        ]
-    elif isinstance(compressed_file, tarfile.TarFile):
-        index_files = [
-            member.name
-            for member in compressed_file.getmembers()
-            if member.isfile() and os.path.basename(member.name) == f"index{file_ext}"
-        ]
-    else:
-        raise TypeError(f"Invalid archive file type: {type(compressed_file)}")
-
-    if not index_files:
+    root_index_files = sorted(
+        list(root_dir.glob(f"**/index{file_ext}")),
+        key=lambda filename: len(filename.__str__().split(os.sep)),
+    )
+    if len(root_index_files) == 0:
         raise FileNotFoundError("Failed to find root index file!")
-
-    root_index_file = sorted(
-        index_files, key=lambda filename: len(filename.split(os.sep))
-    )[0]
-
-    return os.path.dirname(root_index_file)
+    else:
+        return pathlib.Path(root_index_files[0]).parent.absolute()
 
 
 def unpack_project(
@@ -177,11 +160,7 @@ def unpack_project(
             existing_zip.extractall(extract_dir.__str__())
 
         # Determine documentation root dir by finding top-level index file
-        root_index_file = sorted(
-            list(extract_dir.glob("**/index.html")),
-            key=lambda filename: len(filename.__str__().split(os.sep)),
-        )[0]
-        root_dir = pathlib.Path(root_index_file).parent.absolute()
+        root_dir = find_root_dir(extract_dir)
 
         # Then, only move root directory to target dir
         shutil.rmtree(verdir)  # clear possibly existing target dir
