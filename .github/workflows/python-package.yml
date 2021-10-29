@@ -30,4 +30,4 @@ jobs:
         poetry install
     - name: Lint
       run: |
-        pre-commit run --all-files
+        poetry run pre-commit run --all-files
