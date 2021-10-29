@@ -2,7 +2,6 @@
 import os
 import pathlib
 import shutil
-import tarfile
 import tempfile
 import zipfile
 from codecs import open
@@ -168,6 +167,8 @@ def unpack_project(
 
         if os.path.isdir(temp_dir):  # cleanup temporary directory (if it still exists)
             shutil.rmtree(temp_dir)
+    else:
+        raise TypeError("File type must be zip")
 
     return None
 
