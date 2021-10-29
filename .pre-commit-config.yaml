@@ -1,0 +1,27 @@
+repos:
+- repo: https://github.com/pycqa/isort
+  rev: ''
+  hooks:
+  - id: isort
+- repo: https://github.com/ambv/black
+  rev: ''
+  hooks:
+  - id: black
+    language_version: python3
+- repo: https://github.com/pycqa/flake8
+  rev: ''
+  hooks:
+  - id: flake8
+- repo: https://github.com/pre-commit/mirrors-mypy
+  rev: ''
+  hooks:
+  - id: mypy
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: ''
+  hooks:
+  - id: trailing-whitespace
+  - id: check-docstring-first
+  - id: check-added-large-files
+  - id: check-toml
+  - id: check-yaml
+  - id: check-json

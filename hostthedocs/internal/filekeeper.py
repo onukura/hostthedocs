@@ -25,12 +25,12 @@ class Project(BaseModel):
     description: str
 
 
-def sort_by_version(x: Version):
+def sort_by_version(x: Version) -> str:
     # See http://natsort.readthedocs.io/en/stable/examples.html
     return x.version.replace(".", "~") + "z"
 
 
-def _is_valid_doc_version(folder: pathlib.Path):
+def _is_valid_doc_version(folder: pathlib.Path) -> bool:
     """
     Test if a version folder contains valid documentation.
 
@@ -88,17 +88,18 @@ def paths_sorted(paths: List[pathlib.Path]) -> List[pathlib.Path]:
 
 def parse_docfiles(
     docfiles_dir: pathlib.Path, link_root: pathlib.Path
-) -> Optional[List[Project]]:
+) -> List[Project]:
     """
     Create the list of the projects.
 
     The list of projects is computed by walking the `docfiles_dir` and
     searching for project paths (<project-name>/<version>/index.html)
     """
-    if not docfiles_dir.exists():
-        return None
-
     projects: List[Project] = []
+
+    if not docfiles_dir.exists():
+        return projects
+
     folders: List[pathlib.Path] = paths_sorted(
         [p for p in docfiles_dir.iterdir() if p.is_dir()]
     )
@@ -163,7 +164,7 @@ def unpack_project(
 
         # Then, only move root directory to target dir
         shutil.rmtree(verdir)  # clear possibly existing target dir
-        shutil.move(root_dir, verdir)  # only move documentation root dir
+        shutil.move(root_dir.__str__(), verdir)  # only move documentation root dir
 
         if os.path.isdir(temp_dir):  # cleanup temporary directory (if it still exists)
             shutil.rmtree(temp_dir)
@@ -174,20 +175,23 @@ def unpack_project(
 
 
 def delete_files(
-    name: str, version: str, docfiles_dir, entire_project: Optional[bool] = False
-):
-    remove = os.path.join(docfiles_dir, name)
+    name: str,
+    version: str,
+    docfiles_dir: pathlib.Path,
+    entire_project: Optional[bool] = False,
+) -> None:
+    remove = docfiles_dir / name
     if not entire_project:
-        remove = os.path.join(remove, version)
+        (remove / version).rmdir()
     if os.path.exists(remove):
-        shutil.rmtree(remove)
+        remove.rmdir()
 
 
-def _has_latest(versions: List[Version]):
+def _has_latest(versions: List[Version]) -> bool:
     return any(v.version == "latest" for v in versions)
 
 
-def insert_link_to_latest(projects: List[Project]):
+def insert_link_to_latest(projects: List[Project]) -> None:
     """For each project in ``projects``,
     will append a "latest" version that links to a certain location
     (should not be to static files).

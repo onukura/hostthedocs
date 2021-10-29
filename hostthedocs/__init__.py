@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from hostthedocs.config import get_settings
-from hostthedocs.controller import core_routers, api_routers
+from hostthedocs.controller import api_routers, core_routers
 
 settings = get_settings()
 

@@ -45,3 +45,4 @@ foo.html
 index.html
 
 .venv
+.mypy_cache
